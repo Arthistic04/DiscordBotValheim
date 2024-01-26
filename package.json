@@ -20,6 +20,7 @@
   "homepage": "https://github.com/Arthistic04/DiscordBotValheim#readme",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "nodemon": "^3.0.3"
   }
 }
