@@ -4,11 +4,11 @@ const { REST, Routes } = require('discord.js');
 const commands = [
   {
     name: 'vhstart',
-    description: 'Start Valheim Server',
+    description: 'Starts Valheim Server',
   },
   {
     name: 'vhstop',
-    description: 'Stop Valheim Server!',
+    description: 'Stops Valheim Server!',
   },
   {
     name: 'vhstatus',

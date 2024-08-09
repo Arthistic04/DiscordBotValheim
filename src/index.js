@@ -41,20 +41,20 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'vhstart') {
     try {
       if (!serverStarted) {
-        await interaction.reply('Starting Valheim Server!');
+        await interaction.reply('**Starting Valheim Server!** \n *Please wait ...*');
         valheimServerProcess = spawn('E:\\ValheimServer\\valheim_server', [
           '-nographics',
           '-batchmode',
-          '-name', 'CoopWorld',
+          '-name', 'T R A G I C - V A L H E I M',
           '-port', '2456',
-          '-world', 'CoopWorld',
+          '-world', 'VikingRaiders',
           '-password', 'Valhalla',
           '-crossplay',
         ]);
         valheimServerProcess.stdout.on('data', (data) => {
           console.log(`Valheim Server Output: ${data}`);
 
-          const matchSession = data.toString().match(/Session "CoopWorld" with join code (\d+) and IP (\S+:\d+)/);
+          const matchSession = data.toString().match(/Session "T R A G I C - V A L H E I M" with join code (\d+) and IP (\S+:\d+)/);
           const matchUpdateLobby = data.toString().match(/Updating lobby with public IP (\S+:\d+)/);
           const match2 = data.toString().match(/Member cannot join this lobby because the number of lobbies exceeds the limit/);
           
@@ -86,7 +86,7 @@ client.on('interactionCreate', async (interaction) => {
             }
           }
 
-          const playerJoinMatch = data.toString().match(/<color=orange>(.+?)<\/color>:\s<color=#FFEB04FF>I HAVE ARRIVED!<\/color>/);
+          const playerJoinMatch = data.toString().match(/<color=orange>(.+?)<\/color>:\s<color=#FFEB04FF>DUMATING NA AKO! PUTANGINA NIYO!<\/color>/);
           if (playerJoinMatch) {
             const playerName = playerJoinMatch[1];
             if (!processedPlayers.includes(playerName)) {
