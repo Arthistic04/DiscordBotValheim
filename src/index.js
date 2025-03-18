@@ -44,27 +44,13 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.reply(
           "**Starting Valheim Server!** \n *Please wait ...*"
         );
-        valheimServerProcess = spawn("E:\\ValheimServer\\valheim_server", [
-          "-nographics",
-          "-batchmode",
-          "-name",
-          "T R A G I C - V A L H E I M",
-          "-port",
-          "2456",
-          "-world",
-          "VikingRaiders",
-          "-password",
-          "Valhalla",
-          "-crossplay",
-        ]);
+        valheimServerProcess = spawn("/home/valheimserver/vhserver", ["start"]);
         valheimServerProcess.stdout.on("data", (data) => {
           console.log(`Valheim Server Output: ${data}`);
 
           const matchSession = data
             .toString()
-            .match(
-              /Session "T R A G I C - V A L H E I M" with join code (\d+) and IP (\S+:\d+)/
-            );
+            .match(/Session "Roshar" with join code (\d+) and IP (\S+:\d+)/);
           const matchUpdateLobby = data
             .toString()
             .match(/Updating lobby with public IP (\S+:\d+)/);
@@ -153,77 +139,77 @@ client.on("interactionCreate", async (interaction) => {
       //interaction.followUp('Error starting Valheim Server.');
     }
   } else if (commandName === "vhstop") {
-    if (valheimServerProcess && playerCount == 0) {
+    if (serverStarted && playerCount === 0) {
       try {
-        serverStarted = false;
-        process.kill(valheimServerProcess.pid, "SIGTERM");
-        await interaction
-          .reply("Stopping Valheim Server gracefully...")
-          .catch((error) => {
-            if (error.code === 10062) {
-              interaction.reply("Please try again a little while");
-              console.warn("Interaction is no longer valid.");
-            } else {
-              console.error(`Error stopping Valheim Server: ${error.message}`);
-              //interaction.followUp('Error stopping Valheim Server.');
-            }
-          });
-      } catch (error) {
-        console.error(`Error stopping Valheim Server: ${error.message}`);
-        //interaction.followUp('Error stopping Valheim Server.');
-      }
-    } else if (valheimServerProcess && playerCount > 0) {
-      try {
-        await interaction
-          .reply("There are players online. Cannot stop the server.")
-          .catch((error) => {
-            if (error.code === 10062) {
-              interaction.reply("Please try again a little while");
-              console.warn("Interaction is no longer valid.");
-            } else {
-              console.error(`Error stopping Valheim Server: ${error.message}`);
-              //interaction.followUp('Error stopping Valheim Server.');
-            }
-          });
-      } catch (error) {
-        console.error(`Error stopping Valheim Server: ${error.message}`);
-        //interaction.followUp('Error stopping Valheim Server.');
-      }
-    } else {
-      interaction
-        .reply("Valheim Server is not currently running.")
-        .catch((error) => {
-          if (error.code === 10062) {
-            interaction.reply("Please try again a little while");
-            console.warn("Interaction is no longer valid.");
-          } else {
-            console.error(`Error stopping Valheim Server: ${error.message}`);
-            //interaction.followUp('Error stopping Valheim Server.');
-          }
+        await interaction.reply("Stopping Valheim Server...");
+        const stopProcess = spawn("/home/valheimserver/vhserver", ["stop"]);
+        stopProcess.stdout.on("data", (data) => {
+          console.log(`Stop Output: ${data}`);
         });
+        stopProcess.stderr.on("data", (data) => {
+          console.error(`Stop Error: ${data}`);
+        });
+        stopProcess.on("close", (code) => {
+          console.log(`vhserver stop exited with code ${code}`);
+          interaction.followUp("✅ **Valheim Server stopped successfully!**");
+          serverStarted = false;
+        });
+      } catch (error) {
+        console.error(`Error stopping Valheim Server: ${error.message}`);
+        await interaction.followUp("Error stopping Valheim Server.");
+      }
+    } else if (playerCount > 0) {
+      await interaction.reply(
+        "There are players online. Cannot stop the server."
+      );
+    } else {
+      await interaction.reply("Valheim Server is not currently running.");
     }
   } else if (commandName === "vhstatus") {
     try {
-      const serverInfo = interaction.client.serverInfo;
-      //const lobbyInfo = lobbyInfo;
-      if (serverInfo || lobbyInfo) {
-        let replyMessage = "***Valheim Server is UP***\n";
-        if (serverInfo) {
-          replyMessage += `\n**• Server IP:** ${serverInfo.serverIP}\n**• Join Code:** ${serverInfo.joinCode}\n**• Player Count:** ${playerCount}\n**Password:** ||Valhalla||`;
-        }
-        if (lobbyInfo) {
-          replyMessage += `\n**• Server IP:** ${lobbyInfo.serverIP}\n**• Player Count:** ${playerCount}\n**Password:** ||Valhalla||`;
-        }
+      // Spawn vhserver details process
+      const detailsProcess = spawn("./vhserver", ["details"], {
+        cwd: "/home/username",
+      }); // adjust cwd to where vhserver is
+
+      let outputData = "";
+      detailsProcess.stdout.on("data", (data) => {
+        outputData += data.toString();
+      });
+
+      detailsProcess.on("close", async (code) => {
+        // Parse server details
+        const serverName =
+          outputData.match(/Server name:\s+(.*)/)?.[1]?.trim() || "Unknown";
+        const serverIP =
+          outputData.match(/Server IP:\s+(.*)/)?.[1]?.trim() || "Unknown";
+        const serverStatus =
+          outputData.match(/Server status:\s+(.*)/)?.[1]?.trim() || "Unknown";
+        const players =
+          outputData.match(/Players:\s+(.*)/)?.[1]?.trim() || "Unknown";
+
+        // You can hardcode or store the password somewhere safe; for now we’ll show it
+        const joinCode = serverInfo.joinCode || "N/A";
+        const password = "Valhalla";
+
+        const replyMessage = `\`\`\`
+  Server name:    ${serverName}
+  Server IP:      ${serverIP}
+  Join Code:      ${joinCode}
+  Server status:  ${serverStatus}
+  Players:        ${players}
+  Password:       ${password}
+  \`\`\``;
+
         await interaction.reply(replyMessage);
-      } else {
-        await interaction.reply("Valheim Server is not currently running.");
-      }
+      });
+
+      detailsProcess.stderr.on("data", (data) => {
+        console.error(`Error fetching status: ${data}`);
+      });
     } catch (error) {
-      if (error.code === 10062) {
-        console.warn("Interaction is no longer valid.");
-      } else {
-        console.error(`Error replying to vhstatus command: ${error.message}`);
-      }
+      console.error(`Error replying to vhstatus: ${error.message}`);
+      await interaction.reply("Error retrieving server status.");
     }
   } else {
     await interaction.reply("Unknown Command");
