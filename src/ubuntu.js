@@ -63,11 +63,11 @@ client.on("interactionCreate", async (interaction) => {
 
         detailsProcess.on("close", async () => {
           const serverStatus =
-            outputData.match(/Server status:\s+(.*)/)?.[1]?.trim() || "UNKNOWN";
+            outputData.match(/Status:\s+(.*)/)?.[1]?.trim() || "UNKNOWN";
           const players =
             outputData.match(/Players:\s+(.*)/)?.[1]?.trim() || "0 / 10";
           const serverIP =
-            outputData.match(/IP:\s+(.*)/)?.[1]?.trim() || "Unknown";
+            outputData.match(/Internet IP:\s+(.*)/)?.[1]?.trim() || "Unknown";
 
           const replyMessage = `\`\`\`
 Server name:    Roshar
