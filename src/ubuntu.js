@@ -11,6 +11,9 @@ const client = new Client({
     IntentsBitField.Flags.MessageContent,
   ],
 });
+const stripAnsi = (str) => str.replace(/\x1B\[[0-9;]*m/g, "");
+let valheimServerProcess = null;
+let serverStarted = false;
 
 client.on("ready", (c) => {
   console.log(`✅ ${c.user.tag} is online.`);
@@ -18,58 +21,61 @@ client.on("ready", (c) => {
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
-
   const { commandName } = interaction;
-  let serverStarted = false;
 
   if (commandName === "vhstart") {
-    try {
-      if (!serverStarted) {
-        await interaction.reply("**Starting Valheim Server! Please wait...**");
-        spawn("/home/valheimserver/vhserver", ["start"]);
-        serverStarted = true;
-      }
-    } catch (error) {
-      console.error(`Error starting Valheim Server: ${error.message}`);
-      await interaction.followUp("❌ **Error starting Valheim Server.**");
+    if (!serverStarted) {
+      await interaction.reply("**Starting Valheim Server! Please wait...**");
+      spawn("/home/valheimserver/vhserver", ["start"]);
+      valheimServerProcess.on("close", async (code) => {
+        if (code === 0) {
+          serverStarted = true;
+          await interaction.followUp(
+            "✅ **Valheim server started successfully!**"
+          );
+        } else {
+          await interaction.followUp("❌ Failed to start Valheim server.");
+        }
+      });
     }
   } else if (commandName === "vhstop") {
-    try {
-      if (serverStarted) {
-        await interaction.reply("Stopping Valheim Server...");
-        spawn("/home/valheimserver/vhserver", ["stop"]);
-        await interaction.followUp(
-          "✅ **Valheim Server stopped successfully!**"
-        );
-        serverStarted = false;
-      } else {
-        await interaction.reply("Server is not currently running...");
-      }
-    } catch (error) {
-      console.error(`Error stopping Valheim Server: ${error.message}`);
-      await interaction.followUp("❌ **Error stopping Valheim Server.**");
+    if (serverStarted) {
+      await interaction.reply("Stopping Valheim Server...");
+      spawn("/home/valheimserver/vhserver", ["stop"]);
+      stopProcess.on("close", async (code) => {
+        if (code === 0) {
+          serverStarted = false;
+          await interaction.followUp("✅ **Valheim server stopped.**");
+        } else {
+          await interaction.followUp("❌ Failed to stop Valheim server.");
+        }
+      });
+    } else {
+      await interaction.reply("Server is not currently running...");
     }
   } else if (commandName === "vhstatus") {
     try {
-      if (serverStarted) {
-        const detailsProcess = spawn("/home/valheimserver/vhserver", [
-          "details",
-        ]);
-        let outputData = "";
+      await interaction.deferReply();
 
-        detailsProcess.stdout.on("data", (data) => {
-          outputData += data.toString();
-        });
+      const detailsProcess = spawn("/home/valheimserver/vhserver", ["details"]);
 
-        detailsProcess.on("close", async () => {
-          const serverStatus =
-            outputData.match(/Status:\s+(.*)/)?.[1]?.trim() || "UNKNOWN";
-          const players =
-            outputData.match(/Players:\s+(.*)/)?.[1]?.trim() || "0 / 10";
-          const serverIP =
-            outputData.match(/Internet IP:\s+(.*)/)?.[1]?.trim() || "Unknown";
+      let outputData = "";
+      detailsProcess.stdout.on("data", (data) => {
+        outputData += data.toString();
+      });
 
-          const replyMessage = `\`\`\`
+      detailsProcess.on("close", async () => {
+        const cleanOutput = stripAnsi(outputData);
+        let serverStatus =
+          cleanOutput.match(/Status:\s+([^\s]+)/)?.[1] || "OFFLINE";
+        let players = cleanOutput.match(/Players:\s+([^\s]+)/)?.[1] || "0/10";
+        const serverIP =
+          cleanOutput.match(/Internet IP:\s+([^\s]+)/)?.[1] || "Unknown";
+        if (serverStatus.toUpperCase() === "STARTED") serverStatus = "ONLINE";
+        players = players.replace(/\d+\/(\d+)/, (match, max) =>
+          match.replace(max, "10")
+        );
+        const replyMessage = `\`\`\`
 Server name:    Roshar
 Server IP:      ${serverIP}
 Server status:  ${serverStatus}
@@ -77,18 +83,13 @@ Players:        ${players}
 Password:       Valhalla
 \`\`\``;
 
-          await interaction.reply(replyMessage);
-        });
-
-        detailsProcess.stderr.on("data", (data) => {
-          console.error(`Error fetching status: ${data}`);
-        });
-      } else {
-        await interaction.reply("Server is not currently running...");
-      }
+        await interaction.editReply({ content: replyMessage });
+      });
     } catch (error) {
       console.error(`Error retrieving server status: ${error.message}`);
-      await interaction.reply("❌ **Error retrieving server status.**");
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply("❌ **Error retrieving server status.**");
+      }
     }
   }
 });
