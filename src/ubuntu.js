@@ -81,7 +81,7 @@ client.on("interactionCreate", async (interaction) => {
 
       setTimeout(() => {
         afterStart();
-      }, 3000);
+      }, 5000);
     } else {
       await interaction.reply("Server is already running");
     }
