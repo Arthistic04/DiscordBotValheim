@@ -13,8 +13,6 @@ const client = new Client({
   ],
 });
 const stripAnsi = (str) => str.replace(/\x1B\[[0-9;]*m/g, "");
-let valheimServerProcess = null;
-let serverStarted = false;
 
 client.on("ready", (c) => {
   console.log(`✅ ${c.user.tag} is online.`);
@@ -30,6 +28,7 @@ client.on("messageCreate", (message) => {
   }
 });
 
+let serverStarted = false;
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
   const { commandName } = interaction;
@@ -60,11 +59,11 @@ client.on("interactionCreate", async (interaction) => {
       const replyMessage =
         "✅ **Valheim server started successfully!**" +
         `\`\`\`
-Server name:    Roshar
-Server IP:      ${serverIP}:2456
-Server status:  ${serverStatus}
-Players:        ${players}
-Password:       Valhalla
+  Server name:    Roshar
+  Server IP:      ${serverIP}:2456
+  Server status:  ${serverStatus}
+  Players:        ${players}
+  Password:       Valhalla
 \`\`\``;
 
       await interaction.channel.send({ content: replyMessage });
@@ -74,8 +73,9 @@ Password:       Valhalla
   //Commands
   if (commandName === "vhstart") {
     if (!serverStarted) {
+      console.log("Someone started the server");
       await interaction.reply(
-        "**Starting Valheim Server!** \n *Please wait...*"
+        "**Starting Valheim Server!** \n *Please wait ...*"
       );
       spawn("/home/valheimserver/vhserver", ["start"]);
 
@@ -86,8 +86,9 @@ Password:       Valhalla
       await interaction.reply("Server is already running");
     }
   } else if (commandName === "vhstop") {
-    //
-    if (serverStarted) {
+    try {
+      await interaction.deferReply();
+
       const detailsProcess = spawn("/home/valheimserver/vhserver", ["details"]);
 
       let outputData = "";
@@ -96,34 +97,48 @@ Password:       Valhalla
       });
 
       detailsProcess.on("close", async () => {
+        const cleanOutput = stripAnsi(outputData);
+        let serverStatus = cleanOutput.match(/Status:\s+([^\s]+)/)?.[1];
+        const serverIP = cleanOutput.match(/Internet IP:\s+([^\s]+)/)?.[1];
         let playerInfo = "0";
-        try {
-          const state = await GameDig.query({
-            type: "valheim",
-            host: serverIP,
-            port: 2457, // Make sure this matches your server's query port
-          });
-          playerInfo = `${state.players.length}`;
-          console.log("✅ Successfully retrieved player info via gamedig:");
-          console.log("Players Online:", state.players.length);
 
-          if (playerInfo === "0") {
-            spawn("/home/valheimserver/vhserver", ["stop"]);
-            await interaction.reply("**Stopping Valheim Server...**");
-          } else {
-            await interaction.reply("Server is not currently running...");
+        if (serverStatus === "STARTED") {
+          try {
+            const state = await GameDig.query({
+              type: "valheim",
+              host: `${serverIP}`,
+              port: 2457,
+            });
+            playerInfo = `${state.players.length}`;
+            console.log("✅ Successfully retrieved player info via gamedig:");
+            console.log("✅ Players Online:", state.players.length);
+          } catch (err) {
+            console.warn(
+              "❌ Could not get player info via gamedig:",
+              err.message
+            );
           }
-        } catch (err) {
-          console.warn(
-            "❌ Could not get player info via gamedig:",
-            err.message
+          if (playerInfo === "0") {
+            console.log("Someone stopped the server");
+            spawn("/home/valheimserver/vhserver", ["stop"]);
+            await interaction.editReply("**Valheim Server Stopped...**");
+          } else {
+            await interaction.editReply("🟠 **There are players inside!**");
+          }
+        } else {
+          await interaction.editReply(
+            "🟠 **Server is not currently running ...**"
           );
         }
       });
-    } else {
-      await interaction.reply("Server is not currently running...");
+    } catch (err) {
+      console.error(`Error retrieving server status: ${err.message}`);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply("❌ **Error retrieving server status.**");
+      }
     }
   } else if (commandName === "vhstatus") {
+    console.log("Someone checked the server");
     try {
       await interaction.deferReply();
 
@@ -146,39 +161,39 @@ Password:       Valhalla
           serverStatus = "OFFLINE";
         }
 
-        let playerInfo = "0/10";
-        try {
-          const state = await GameDig.query({
-            type: "valheim",
-            host: serverIP,
-            port: 2457, // Make sure this matches your server's query port
-          });
-          playerInfo = `${state.players.length}/10`;
-          console.log("✅ Successfully retrieved player info via gamedig:");
-          console.log("Server Name:", state.name);
-          console.log("Players Online:", state.players.length);
-          console.log(
-            "Player List:",
-            state.players.map((p) => p.name).join(", ") || "None"
-          );
-        } catch (err) {
-          console.warn(
-            "❌ Could not get player info via gamedig:",
-            err.message
-          );
-        }
-        const replyMessage = `\`\`\`
-Server name:    Roshar
-Server IP:      ${serverIP}:2456
-Server status:  ${serverStatus}
-Players:        ${playerInfo}
-Password:       Valhalla
-\`\`\``;
+        if (serverStatus === "ONLINE") {
+          let playerInfo = "0/10";
+          try {
+            const state = await GameDig.query({
+              type: "valheim",
+              host: `${serverIP}`,
+              port: 2457, // Make sure this matches your server's query port
+            });
+            playerInfo = `${state.players.length}/10`;
+            console.log("✅ Successfully retrieved player info via gamedig:");
+            console.log("Server Name:", state.name);
+            console.log("Players Online:", state.players.length);
+          } catch (err) {
+            console.warn(
+              "❌ Could not get player info via gamedig:",
+              err.message
+            );
+          }
+          const replyMessage = `\`\`\`
+    Server name:    Roshar
+    Server IP:      ${serverIP}:2456
+    Server status:  ${serverStatus}
+    Players:        ${playerInfo}
+    Password:       Valhalla
+  \`\`\``;
 
-        await interaction.editReply({ content: replyMessage });
+          await interaction.editReply({ content: replyMessage });
+        } else {
+          await interaction.editReply("**No server is running ...**");
+        }
       });
-    } catch (error) {
-      console.error(`Error retrieving server status: ${error.message}`);
+    } catch (err) {
+      console.error(`Error retrieving server status: ${err.message}`);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply("❌ **Error retrieving server status.**");
       }
