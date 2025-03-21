@@ -75,7 +75,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!serverStarted) {
       console.log("Someone started the server");
       await interaction.reply(
-        "**Starting Valheim Server!** \n *Please wait ...*"
+        "🚀 **Starting Valheim Server!** \n *Please wait ...*"
       );
       spawn("/home/valheimserver/vhserver", ["start"]);
 

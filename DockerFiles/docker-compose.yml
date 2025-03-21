@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  valheim-server:
+    image: lloesche/valheim-server
+    container_name: valheim-server
+    restart: unless-stopped
+    ports:
+      - "2456-2458:2456-2458/udp"
+    environment:
+      - SERVER_NAME=Roshar # Change to your preferred server name
+      - WORLD_NAME=yourworld # Change world name if needed
+      - SERVER_PASS=Valhalla # Set your server password
+      - SERVER_PUBLIC=true # Set to false if you want it private
+    volumes:
+      - /home/valheimserver/1vhserver/config:/config
+      - /home/valheimserver/1vhserver/data:/opt/valheim
