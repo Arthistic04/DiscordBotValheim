@@ -7,12 +7,11 @@ SERVER_NAME="Roshar"
 
 if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
     status="ONLINE"
-    logs=$(docker logs $CONTAINER_NAME 2>&1)
-    joins=$(echo "$logs" | grep -c "Got character ZDOID from:")
-    leaves=$(echo "$logs" | grep -c "RPC_Disconnect")
+    joins=$(docker logs $CONTAINER_NAME 2>&1 | grep -c "Got character ZDOID from")
+    leaves=$(docker logs $CONTAINER_NAME 2>&1 | grep -c "RPC_Disconnect")
     players=$((joins - leaves))
-    if [ $players -lt 0 ]; then
-      players=0
+    if [ "$players" -lt 0 ]; then
+        players=0
     fi
 
     echo "Server Status:    $status"

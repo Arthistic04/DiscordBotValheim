@@ -67,55 +67,44 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.deferReply();
       console.log("Attempting to stop the server...");
 
-      // Check if Docker container is running
-      const dockerCheck = spawn("docker", [
-        "ps",
-        "-q",
-        "-f",
-        "name=valheim-server",
+      // Run status.sh to check current server status
+      const statusScript = spawn("bash", [
+        "/home/valheimserver/1vhserver/status.sh",
       ]);
 
-      let containerId = "";
-      dockerCheck.stdout.on("data", (data) => {
-        containerId += data.toString().trim();
+      let statusOutput = "";
+      statusScript.stdout.on("data", (data) => {
+        statusOutput += data.toString();
       });
 
-      dockerCheck.on("close", async () => {
-        if (!containerId) {
+      statusScript.on("close", async () => {
+        console.log("Status Output:\n", statusOutput);
+
+        if (statusOutput.includes("OFFLINE")) {
           await interaction.editReply(
-            "🟠 **Server is not currently running ...**"
+            "🟠 **Server is not currently running...**"
           );
           return;
         }
 
-        // Get player count from docker logs
-        const dockerLogs = spawn("docker", ["logs", "valheim-server"]);
+        const playersMatch = statusOutput.match(/Players Online:\s+(\d+)/);
+        const playersOnline = playersMatch ? parseInt(playersMatch[1], 10) : 0;
 
-        let logsOutput = "";
-        dockerLogs.stdout.on("data", (data) => {
-          logsOutput += data.toString();
-        });
-
-        dockerLogs.on("close", async () => {
-          const playerMatches = logsOutput.match(/Got connection SteamID/g);
-          const playersOnline = playerMatches ? playerMatches.length : 0;
-
-          if (playersOnline === 0) {
-            console.log("No players online, stopping the server...");
-            spawn("docker", ["stop", "valheim-server"]);
-            await interaction.editReply(
-              "🛑 **Valheim server has been stopped.**"
-            );
-          } else {
-            console.log("Players currently online, will not stop the server.");
-            await interaction.editReply(
-              "⚠️ **There are online players — stop aborted.**"
-            );
-          }
-        });
+        if (playersOnline === 0) {
+          console.log("No players online, stopping the server...");
+          spawn("docker", ["stop", "valheim-server"]);
+          await interaction.editReply(
+            "🛑 **Valheim server has been stopped.**"
+          );
+        } else {
+          console.log("Players currently online, will not stop the server.");
+          await interaction.editReply(
+            "⚠️ **There are online players — stop aborted.**"
+          );
+        }
       });
     } catch (err) {
-      console.error(`Error checking/stopping Docker container: ${err.message}`);
+      console.error(`Error: ${err.message}`);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply(
           "❌ **Error checking or stopping the server.**"
