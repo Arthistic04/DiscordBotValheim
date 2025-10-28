@@ -1,7 +1,7 @@
 sudo apt update && sudo apt install docker.io docker-compose -y
-sudo systemctl enable --now docke
+sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
-newgrp dockerr
+newgrp docker
 
 docker pull lloesche/valheim-server
 
