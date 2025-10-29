@@ -1,17 +1,25 @@
-version: "3.8"
-
 services:
-  valheim-server:
-    image: lloesche/valheim-server
+  valheim:
+    image: mbround18/valheim:latest
     container_name: valheim-server
     restart: unless-stopped
     ports:
-      - "2456-2458:2456-2458/udp"
+      - 2456:2456/udp
+      - 2457:2457/udp
+      - 2458:2458/udp
     environment:
-      - SERVER_NAME=Roshar # Change to your preferred server name
-      - WORLD_NAME=yourworld # Change world name if needed
-      - SERVER_PASS=Valhalla # Set your server password
-      - SERVER_PUBLIC=true # Set to false if you want it private
+      PORT: 2456
+      NAME: 'Helixar'
+      WORLD: 'ourworld'
+      PASSWORD: 'Valhalla'
+      PUBLIC: '1'
+      TYPE: 'BepInEx'
+      TZ: 'Asia/Manila'
+      UPDATE_ON_STARTUP: 0
+      AUTO_UPDATE: 0
+      AUTO_BACKUP: 1
+      AUTO_BACKUP_SCHEDULE: '* */60 * * *'
     volumes:
-      - /home/valheimserver/1vhserver/config:/config
-      - /home/valheimserver/1vhserver/data:/opt/valheim
+      - ./valheim/saves:/home/steam/.config/unity3d/IronGate/Valheim
+      - ./valheim/server:/home/steam/valheim
+      - ./valheim/backups:/home/steam/backups

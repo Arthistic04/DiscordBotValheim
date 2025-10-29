@@ -1,6 +1,6 @@
-require("dotenv").config();
-const { Client, IntentsBitField } = require("discord.js");
-const { spawn } = require("child_process");
+require('dotenv').config();
+const { Client, IntentsBitField } = require('discord.js');
+const { spawn } = require('child_process');
 const client = new Client({
   intents: [
     IntentsBitField.Flags.Guilds,
@@ -10,81 +10,77 @@ const client = new Client({
   ],
 });
 
-client.on("ready", (c) => {
+client.on('ready', (c) => {
   console.log(`✅ ${c.user.tag} is online.`);
-  const channel = client.channels.fetch("1352943079811973160"); // Replace with your Discord channel ID
-  startValheimLogListener("valheim-server", channel);
+  const channel = client.channels.fetch('1352943079811973160'); // Replace with your Discord channel ID
+  startValheimLogListener('valheim-server', channel);
 });
 
-client.on("messageCreate", (message) => {
+client.on('messageCreate', (message) => {
   if (message.author.bot) {
     return;
   }
 
-  if (message.content === ".ping") {
-    message.reply("✅ Valhalla#7999 is online.");
+  if (message.content === '.ping') {
+    message.reply('✅ Valhalla#7999 is online.');
   }
 });
 
 const runScript = (scriptPath) => {
   return new Promise((resolve, reject) => {
     const process = spawn(scriptPath);
-    let output = "";
+    let output = '';
 
-    process.stdout.on("data", (data) => {
+    process.stdout.on('data', (data) => {
       output += data.toString();
     });
 
-    process.stderr.on("data", (data) => {
+    process.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
     });
 
-    process.on("close", () => {
+    process.on('close', () => {
       resolve(output);
     });
   });
 };
 
-client.on("interactionCreate", async (interaction) => {
+client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return;
   const { commandName } = interaction;
 
-  if (commandName === "vhstart") {
+  if (commandName === 'vhstart') {
     await interaction.reply(
-      "🚀 **Starting Docker Valheim Server!** *Please wait...*"
+      '🚀 **Starting Docker Valheim Server!** *Please wait...*'
     );
-    await runScript("/home/valheimserver/1vhserver/start.sh");
+    await runScript('/home/vhuser/vhserver/start.sh');
     setTimeout(async () => {
-      const statusOutput = await runScript(
-        "/home/valheimserver/1vhserver/status.sh"
-      );
+      const statusOutput = await runScript('/home/vhuser/vhserver/status.sh');
       await interaction.channel.send(
         `✅ **Valheim Server Started!**\n\`\`\`${statusOutput}\`\`\``
       );
     }, 5000);
   }
 
-  if (commandName === "vhstop") {
+  if (commandName === 'vhstop') {
     try {
       await interaction.deferReply();
-      console.log("Attempting to stop the server...");
+      console.log('Attempting to stop the server...');
 
       // Run status.sh to check current server status
-      const statusScript = spawn("bash", [
-        "/home/valheimserver/1vhserver/status.sh",
-      ]);
+      const statusScript = spawn('bash', ['/home/vhuser/vhserver/status.sh']);
 
-      let statusOutput = "";
-      statusScript.stdout.on("data", (data) => {
+      let statusOutput = '';
+      statusScript.stdout.on('data', (data) => {
         statusOutput += data.toString();
       });
 
-      statusScript.on("close", async () => {
-        console.log("Status Output:\n", statusOutput);
+      statusScript.on('close', async () => {
+        console.log('Status Output:\n', statusOutput);
 
-        if (statusOutput.includes("OFFLINE")) {
+        if (statusOutput.includes('OFFLINE')) {
           await interaction.editReply(
-            "🟠 **Server is not currently running...**"
+            '🟠 **Server is not currently running...**'
           );
           return;
         }
@@ -93,15 +89,15 @@ client.on("interactionCreate", async (interaction) => {
         const playersOnline = playersMatch ? parseInt(playersMatch[1], 10) : 0;
 
         if (playersOnline === 0) {
-          console.log("No players online, stopping the server...");
-          spawn("docker", ["stop", "valheim-server"]);
+          console.log('No players online, stopping the server...');
+          spawn('docker', ['stop', 'valheim-server']);
           await interaction.editReply(
-            "🛑 **Valheim server has been stopped.**"
+            '🛑 **Valheim server has been stopped.**'
           );
         } else {
-          console.log("Players currently online, will not stop the server.");
+          console.log('Players currently online, will not stop the server.');
           await interaction.editReply(
-            "⚠️ **There are online players — stop aborted.**"
+            '⚠️ **There are online players — stop aborted.**'
           );
         }
       });
@@ -109,17 +105,15 @@ client.on("interactionCreate", async (interaction) => {
       console.error(`Error: ${err.message}`);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply(
-          "❌ **Error checking or stopping the server.**"
+          '❌ **Error checking or stopping the server.**'
         );
       }
     }
   }
 
-  if (commandName === "vhstatus") {
+  if (commandName === 'vhstatus') {
     await interaction.deferReply();
-    const statusOutput = await runScript(
-      "/home/valheimserver/1vhserver/status.sh"
-    );
+    const statusOutput = await runScript('/home/vhuser/vhserver/status.sh');
     await interaction.editReply(
       `📊 **Valheim Server Status:**\n\`\`\`${statusOutput}\`\`\``
     );
@@ -128,10 +122,10 @@ client.on("interactionCreate", async (interaction) => {
 
 // ✅ Persistent log listener with embed messages
 const startValheimLogListener = (containerName, channel) => {
-  const dockerLogs = spawn("docker", ["logs", "-f", containerName]);
+  const dockerLogs = spawn('docker', ['logs', '-f', containerName]);
   const processedPlayers = [];
 
-  dockerLogs.stdout.on("data", async (data) => {
+  dockerLogs.stdout.on('data', async (data) => {
     const logLine = data.toString();
     console.log(`[${containerName}] ${logLine}`);
 
@@ -143,29 +137,29 @@ const startValheimLogListener = (containerName, channel) => {
         processedPlayers.push(steamID);
         const joinEmbed = new EmbedBuilder()
           .setColor(0x00ff00)
-          .setTitle("📝 Player Joined Valhalla")
+          .setTitle('📝 Player Joined Valhalla')
           .setDescription(`Player Name: **${steamID}**`)
-          .setFooter({ text: "Valheim Server" })
+          .setFooter({ text: 'Valheim Server' })
           .setTimestamp();
         channel.send({ embeds: [joinEmbed] });
       }
     }
 
     // Player leave
-    if (logLine.includes("RPC_Disconnect")) {
+    if (logLine.includes('RPC_Disconnect')) {
       const leaveEmbed = new EmbedBuilder()
         .setColor(0xff0000)
-        .setTitle("👋 Player Left the Server")
-        .setFooter({ text: "Valheim Server" })
+        .setTitle('👋 Player Left the Server')
+        .setFooter({ text: 'Valheim Server' })
         .setTimestamp();
       channel.send({ embeds: [leaveEmbed] });
     }
   });
 
-  dockerLogs.stderr.on("data", (data) => {
+  dockerLogs.stderr.on('data', (data) => {
     console.error(`[${containerName}] ERROR: ${data}`);
   });
 };
 
-console.log("Loaded TOKEN:", process.env.TOKEN ? "✅ Present" : "❌ Missing");
+console.log('Loaded TOKEN:', process.env.TOKEN ? '✅ Present' : '❌ Missing');
 client.login(process.env.TOKEN);

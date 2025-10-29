@@ -1,7 +1,7 @@
 #!/bin/bash
-cd /home/valheimserver/1vhserver
+cd /home/vhuser/vhserver
 CONTAINER_NAME="valheim-server"
-IP_ADDRESS="114.108.200.184"
+IP_ADDRESS="Under Testing"
 PORT="2456"
 SERVER_NAME="Roshar"
 

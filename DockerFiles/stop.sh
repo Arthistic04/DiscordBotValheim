@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /home/valheimserver/1vhserver
+cd /home/vhuser/vhserver
 docker-compose down
