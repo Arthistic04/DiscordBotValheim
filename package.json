@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "register": "node src/commands.js",
     "start": "nodemon src/index.js"
   },
   "repository": {

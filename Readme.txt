@@ -78,3 +78,9 @@ cd /home/(user)/valheimserver/
 ./start.sh     # to start the docker server
 ./stop.sh      # to stop the docker server
 ./status.sh    # to check status + players
+
+Discord Chat Bot
+- Install required packages: npm install
+- fill the .env
+- register commands: npm register
+- run the bot: npm start
